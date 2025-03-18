@@ -2,11 +2,17 @@ using UnityEngine;
 
 public class ItemWorld : MonoBehaviour
 {
-    [SerializeField] private ItemSO item; // —сылка на ScriptableObject предмета
-    private Vector3 originalScale; // ќригинальный размер объекта
+    [SerializeField] private ItemSO item;
+    [SerializeField] private new Rigidbody rigidbody;
+    private Vector3 originalScale;
 
     private void Awake()
     {
+        if (rigidbody == null)
+        {
+            rigidbody = GetComponent<Rigidbody>();
+        }
+
         originalScale = transform.localScale;
     }
 
@@ -18,5 +24,10 @@ public class ItemWorld : MonoBehaviour
     public Vector3 GetOriginalScale()
     {
         return originalScale;
+    }
+
+    public void SetItem(ItemSO newItem)
+    {
+        item = newItem;
     }
 }

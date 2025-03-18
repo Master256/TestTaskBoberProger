@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemName: Box
   itemIcon: {fileID: -910199935, guid: f548353f7d543404b8a96d65087e1041, type: 3}
-  prefab: {fileID: 3813090980576797727, guid: 79fa7b6018aa58e4289e67cc2375d6b4, type: 3}
+  prefab: {fileID: 919132149155446097, guid: 4d044d4e28d086c4f8ddb2ba37226195, type: 3}
   itemType: 2

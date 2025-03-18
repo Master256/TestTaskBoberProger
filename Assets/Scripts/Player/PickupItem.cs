@@ -2,20 +2,22 @@ using UnityEngine;
 
 public class PickupItem : MonoBehaviour
 {
-    [SerializeField] private float pickupDistance = 3f; // Дистанция подбора предметов
-    [SerializeField] private LayerMask itemLayer; // Слой для предметов
-    [SerializeField] private Transform handTransform; // Точка, где будет отображаться предмет в руках
-    [SerializeField] private GameInput gameInput; // Ссылка на GameInput
+    [SerializeField] private float pickupDistance = 3f;
+    [SerializeField] private LayerMask itemLayer;
+    [SerializeField] private Transform handTransform;
+    [SerializeField] private GameInput gameInput;
 
-    private Inventory inventory; // Ссылка на инвентарь
-    private GameObject currentHeldItem; // Текущий предмет в руках
-    private Vector3 heldItemOriginalScale; // Оригинальный размер предмета в руках
-    private Vector3 heldItemColliderSize; // Оригинальный размер коллайдера
-    private bool isHoldingItem = false; // Флаг, указывающий, держит ли игрок предмет
+    private Inventory inventory;
+    private GameObject currentHeldItem;
+    private Vector3 heldItemOriginalScale;
+    private Vector3 heldItemColliderSize;
+    private Vector3 heldItemColliderCenter;
+    private ItemSO heldItemSO;
+    private bool isHoldingItem = false;
 
     private void Awake()
     {
-        inventory = GetComponent<Inventory>(); // Получаем компонент Inventory
+        inventory = GetComponent<Inventory>();
         if (inventory == null)
         {
             Debug.LogError("Inventory component not found on the player!");
@@ -24,17 +26,14 @@ public class PickupItem : MonoBehaviour
 
     private void Update()
     {
-        // Проверяем, нажата ли клавиша взаимодействия
         if (gameInput.IsInteractPressed())
         {
             if (isHoldingItem)
             {
-                // Если игрок держит предмет, отпускаем его
                 DropItem();
             }
             else
             {
-                // Если игрок не держит предмет, пытаемся подобрать
                 TryPickupItem();
             }
         }
@@ -42,114 +41,138 @@ public class PickupItem : MonoBehaviour
 
     private void TryPickupItem()
     {
-        // Бросаем луч для обнаружения предметов
         RaycastHit hit;
         bool isHit = Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out hit, pickupDistance, itemLayer);
-
-        Debug.DrawRay(Camera.main.transform.position, Camera.main.transform.forward * pickupDistance, Color.red, 1f); // Рисуем луч в сцене
 
         if (isHit)
         {
             ItemWorld itemWorld = hit.collider.GetComponent<ItemWorld>();
             if (itemWorld != null)
             {
-                Debug.Log($"Найден предмет: {itemWorld.name}");
-                // Добавляем предмет в инвентарь
-                inventory.AddItem(itemWorld.GetItem());
+                heldItemSO = itemWorld.GetItem();
+                heldItemOriginalScale = itemWorld.GetOriginalScale();
 
-                // Отображаем предмет в руках
-                DisplayItemInHand(itemWorld.GetItem(), itemWorld.GetOriginalScale());
+                BoxCollider itemCollider = hit.collider.GetComponent<BoxCollider>();
+                if (itemCollider != null)
+                {
+                    heldItemColliderSize = itemCollider.size;
+                    heldItemColliderCenter = itemCollider.center;
+                }
+                else
+                {
+                    heldItemColliderSize = Vector3.one;
+                    heldItemColliderCenter = Vector3.zero;
+                }
 
-                // Убираем предмет из мира
+                inventory.AddItem(heldItemSO);
+
+                DisplayItemInHand(heldItemSO, heldItemOriginalScale, heldItemColliderSize, heldItemColliderCenter);
+
                 Destroy(hit.collider.gameObject);
 
-                // Устанавливаем флаг, что игрок держит предмет
                 isHoldingItem = true;
             }
         }
-        else
-        {
-            Debug.Log("Не найден предмет");
-        }
     }
 
-    private void DisplayItemInHand(ItemSO item, Vector3 originalScale)
+    private void DisplayItemInHand(ItemSO item, Vector3 originalScale, Vector3 colliderSize, Vector3 colliderCenter)
     {
-        // Удаляем текущий предмет из рук, если он есть
-        if (currentHeldItem != null)
-        {
-            Destroy(currentHeldItem);
-        }
-
-        // Создаём новый объект предмета в руках
         if (item.prefab != null)
         {
             currentHeldItem = Instantiate(item.prefab, handTransform);
-            currentHeldItem.transform.localPosition = Vector3.zero; // Позиция в руках
-            currentHeldItem.transform.localRotation = Quaternion.identity; // Поворот в руках
-            currentHeldItem.transform.localScale = originalScale; // Сохраняем оригинальный размер
+            currentHeldItem.transform.localPosition = Vector3.zero;
+            currentHeldItem.transform.localRotation = Quaternion.identity;
+            currentHeldItem.transform.localScale = originalScale;
 
-            // Добавляем MeshCollider, если его нет
-            MeshCollider meshCollider = currentHeldItem.GetComponent<MeshCollider>();
-            if (meshCollider == null)
+            BoxCollider boxCollider = currentHeldItem.GetComponent<BoxCollider>();
+            if (boxCollider == null)
             {
-                meshCollider = currentHeldItem.AddComponent<MeshCollider>();
-                meshCollider.convex = true; // Включаем convex для работы с Rigidbody
+                boxCollider = currentHeldItem.AddComponent<BoxCollider>();
             }
+
+            boxCollider.size = colliderSize;
+            boxCollider.center = colliderCenter;
         }
     }
 
     private void DropItem()
     {
-        // Если в руках есть предмет, выбрасываем его
         if (currentHeldItem != null)
         {
-            // Убираем предмет из рук
             Destroy(currentHeldItem);
 
-            // Создаём предмет в мире
             ItemSO item = inventory.GetCurrentItem();
             if (item != null && item.prefab != null)
             {
-                // Позиция спавна
                 Vector3 spawnPosition = handTransform.position + handTransform.forward * 2;
 
-                // Создаём объект предмета в мире
                 GameObject droppedItem = Instantiate(item.prefab, spawnPosition, Quaternion.identity);
                 if (droppedItem == null)
                 {
                     return;
                 }
 
-                // Восстанавливаем оригинальный размер
-                droppedItem.transform.localScale = heldItemOriginalScale;
-
-                // Добавляем MeshCollider, если его нет
-                MeshCollider meshCollider = droppedItem.GetComponent<MeshCollider>();
-                if (meshCollider == null)
+                int itemLayerIndex = GetFirstLayerIndex(itemLayer);
+                if (itemLayerIndex != -1)
                 {
-                    meshCollider = droppedItem.AddComponent<MeshCollider>();
-                    meshCollider.convex = true; // Включаем convex для работы с Rigidbody
+                    droppedItem.layer = itemLayerIndex;
                 }
 
-                // Добавляем Rigidbody, если его нет
+                droppedItem.transform.localScale = heldItemOriginalScale;
+
+                BoxCollider boxCollider = droppedItem.GetComponent<BoxCollider>();
+                if (boxCollider == null)
+                {
+                    boxCollider = droppedItem.AddComponent<BoxCollider>();
+                }
+
+                boxCollider.size = heldItemColliderSize;
+                boxCollider.center = heldItemColliderCenter;
+
                 Rigidbody rb = droppedItem.GetComponent<Rigidbody>();
                 if (rb == null)
                 {
                     rb = droppedItem.AddComponent<Rigidbody>();
                 }
 
-                // Настраиваем Rigidbody
-                rb.mass = 1f; // Настрой массу, если нужно
-                rb.interpolation = RigidbodyInterpolation.Interpolate; // Для плавного движения
-                rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // Для предотвращения проваливания
+                rb.mass = 1f;
+                rb.interpolation = RigidbodyInterpolation.Interpolate;
+                rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
-                // Убираем предмет из инвентаря
+                ItemWorld itemWorld = droppedItem.GetComponent<ItemWorld>();
+                if (itemWorld == null)
+                {
+                    itemWorld = droppedItem.AddComponent<ItemWorld>();
+                }
+
+                itemWorld.SetItem(heldItemSO);
+
                 inventory.RemoveItem(item);
             }
 
-            // Сбрасываем флаг, что игрок держит предмет
             isHoldingItem = false;
         }
+    }
+
+    /// <summary>
+    /// Метод для получения номера слоя
+    /// </summary>
+    private int GetFirstLayerIndex(LayerMask layerMask)
+    {
+        int layerValue = layerMask.value;
+        if (layerValue == 0)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < 32; i++)
+        {
+            if ((layerValue & (1 << i)) != 0)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 }
