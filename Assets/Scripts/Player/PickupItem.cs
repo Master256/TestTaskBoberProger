@@ -6,13 +6,14 @@ public class PickupItem : MonoBehaviour
     [SerializeField] private LayerMask itemLayer;
     [SerializeField] private Transform handTransform;
     [SerializeField] private GameInput gameInput;
+    [SerializeField] private Inventory inventory;
+    [SerializeField] private Hotbar hotbar;
 
-    private Inventory inventory;
     private GameObject currentHeldItem;
-    private Vector3 heldItemOriginalScale;
-    private Vector3 heldItemColliderSize;
-    private Vector3 heldItemColliderCenter;
-    private ItemSO heldItemSO;
+    private Vector3[] heldItemOriginalScale;
+    private Vector3[] heldItemColliderSize;
+    private Vector3[] heldItemColliderCenter;
+    private ItemSO[] heldItemSO;
     private bool isHoldingItem = false;
 
     private void Awake()
@@ -22,6 +23,14 @@ public class PickupItem : MonoBehaviour
         {
             Debug.LogError("Inventory component not found on the player!");
         }
+    }
+
+    private void Start()
+    {
+        heldItemOriginalScale = new Vector3[hotbar.GetLengthSlots()];
+        heldItemColliderSize = new Vector3[hotbar.GetLengthSlots()];
+        heldItemColliderCenter = new Vector3[hotbar.GetLengthSlots()];
+        heldItemSO = new ItemSO[hotbar.GetLengthSlots()];
     }
 
     private void Update()
@@ -49,31 +58,32 @@ public class PickupItem : MonoBehaviour
             ItemWorld itemWorld = hit.collider.GetComponent<ItemWorld>();
             if (itemWorld != null)
             {
-                heldItemSO = itemWorld.GetItem();
-                heldItemOriginalScale = itemWorld.GetOriginalScale();
+                int index = hotbar.GetSelectedSlot();
+
+                heldItemSO[index] = itemWorld.GetItem();
+                heldItemOriginalScale[index] = itemWorld.GetOriginalScale();
 
                 BoxCollider itemCollider = hit.collider.GetComponent<BoxCollider>();
                 if (itemCollider != null)
                 {
-                    heldItemColliderSize = itemCollider.size;
-                    heldItemColliderCenter = itemCollider.center;
+                    heldItemColliderSize[index] = itemCollider.size;
+                    heldItemColliderCenter[index] = itemCollider.center;
                 }
                 else
                 {
-                    heldItemColliderSize = Vector3.one;
-                    heldItemColliderCenter = Vector3.zero;
+                    heldItemColliderSize[index] = Vector3.one;
+                    heldItemColliderCenter[index] = Vector3.zero;
                 }
 
-                inventory.AddItem(heldItemSO);
-
-                DisplayItemInHand(heldItemSO, heldItemOriginalScale, heldItemColliderSize, heldItemColliderCenter);
+                inventory.AddItem(heldItemSO[index]);
+                DisplayItemInHand(heldItemSO[index], heldItemOriginalScale[index], heldItemColliderSize[index], heldItemColliderCenter[index]);
 
                 Destroy(hit.collider.gameObject);
-
                 isHoldingItem = true;
             }
         }
     }
+
 
     private void DisplayItemInHand(ItemSO item, Vector3 originalScale, Vector3 colliderSize, Vector3 colliderCenter)
     {
@@ -101,7 +111,9 @@ public class PickupItem : MonoBehaviour
         {
             Destroy(currentHeldItem);
 
+            int slotIndex = hotbar.GetSelectedSlot();
             ItemSO item = inventory.GetCurrentItem();
+
             if (item != null && item.prefab != null)
             {
                 Vector3 spawnPosition = handTransform.position + handTransform.forward * 2;
@@ -118,7 +130,7 @@ public class PickupItem : MonoBehaviour
                     droppedItem.layer = itemLayerIndex;
                 }
 
-                droppedItem.transform.localScale = heldItemOriginalScale;
+                droppedItem.transform.localScale = heldItemOriginalScale[slotIndex];
 
                 BoxCollider boxCollider = droppedItem.GetComponent<BoxCollider>();
                 if (boxCollider == null)
@@ -126,8 +138,8 @@ public class PickupItem : MonoBehaviour
                     boxCollider = droppedItem.AddComponent<BoxCollider>();
                 }
 
-                boxCollider.size = heldItemColliderSize;
-                boxCollider.center = heldItemColliderCenter;
+                boxCollider.size = heldItemColliderSize[slotIndex];
+                boxCollider.center = heldItemColliderCenter[slotIndex];
 
                 Rigidbody rb = droppedItem.GetComponent<Rigidbody>();
                 if (rb == null)
@@ -145,9 +157,9 @@ public class PickupItem : MonoBehaviour
                     itemWorld = droppedItem.AddComponent<ItemWorld>();
                 }
 
-                itemWorld.SetItem(heldItemSO);
+                itemWorld.SetItem(heldItemSO[slotIndex]);
 
-                inventory.RemoveItem(item);
+                inventory.RemoveItem(slotIndex);
             }
 
             isHoldingItem = false;
@@ -174,5 +186,32 @@ public class PickupItem : MonoBehaviour
         }
 
         return -1;
+    }
+
+    public void SetActiveObject()
+    {
+        if (currentHeldItem != null)
+        {
+            Destroy(currentHeldItem);
+            currentHeldItem = null;
+            isHoldingItem = false;
+        }
+
+        int currentSlotIndex = hotbar.GetSelectedSlot();
+
+        if (inventory.HasItemInSlot(currentSlotIndex))
+        {
+            ItemSO currentItem = inventory.GetCurrentItem();
+
+            if (currentItem != null && currentItem.prefab != null)
+            {
+                currentHeldItem = Instantiate(currentItem.prefab, handTransform);
+                currentHeldItem.transform.localPosition = Vector3.zero;
+                currentHeldItem.transform.localRotation = Quaternion.identity;
+                currentHeldItem.transform.localScale = heldItemOriginalScale[currentSlotIndex];
+
+                isHoldingItem = true;
+            }
+        }
     }
 }

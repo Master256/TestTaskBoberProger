@@ -28,4 +28,12 @@ public class RotateCameraPlayer : MonoBehaviour
         RotationX = Mathf.Clamp(value: RotationX, min: -MaxYAngle, MaxYAngle);
         transform.localRotation = Quaternion.Euler(RotationX, y: 0.0f, z: 0.0f);
     }
+
+    public void SetSensivityCamera()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        Sensivity = 0f;
+    }
 }

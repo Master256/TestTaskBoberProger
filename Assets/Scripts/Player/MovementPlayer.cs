@@ -57,4 +57,9 @@ public class MovementPlayer : MonoBehaviour
             hitRigidbody.AddForce(pushDirection * pushForce, ForceMode.Impulse);
         }
     }
+
+    public void SetSpeedPlayer()
+    {
+        moveSpeed = 0f;
+    }
 }

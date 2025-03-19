@@ -5,19 +5,20 @@ public class Hotbar : MonoBehaviour
 {
     [SerializeField] private Image[] slots; // Массив ячеек хот-бара
     [SerializeField] private Sprite defaultIcon; // Иконка по умолчанию
+    [SerializeField] private PickupItem pickupItem; // Ссылка на скрипт PickupItem
     private int selectedSlot = 0; // Текущая выбранная ячейка
 
-    void Start()
+    private void Start()
     {
         UpdateHotbar();
     }
 
-    void Update()
+    private void Update()
     {
         HandleScrollWheel();
     }
 
-    void HandleScrollWheel()
+    private void HandleScrollWheel()
     {
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (scroll != 0)
@@ -26,6 +27,8 @@ public class Hotbar : MonoBehaviour
             if (selectedSlot < 0) selectedSlot = slots.Length - 1;
             if (selectedSlot >= slots.Length) selectedSlot = 0;
             UpdateHotbar();
+
+            pickupItem.SetActiveObject(); // Обновляем предмет в руках
         }
     }
 
@@ -33,13 +36,16 @@ public class Hotbar : MonoBehaviour
     {
         for (int i = 0; i < slots.Length; i++)
         {
-            if (i == selectedSlot)
+            if (slots[i].sprite == defaultIcon)
             {
-                slots[i].color = Color.white;
-            }
-            else
-            {
-                slots[i].color = Color.gray;
+                if (i == selectedSlot)
+                {
+                    slots[i].color = Color.white;
+                }
+                else
+                {
+                    slots[i].color = Color.gray;
+                }
             }
         }
     }
@@ -58,5 +64,15 @@ public class Hotbar : MonoBehaviour
         {
             slots[slotIndex].sprite = defaultIcon;
         }
+    }
+
+    public int GetLengthSlots()
+    {
+        return slots.Length;
+    }
+
+    public int GetSelectedSlot()
+    {
+        return selectedSlot;
     }
 }

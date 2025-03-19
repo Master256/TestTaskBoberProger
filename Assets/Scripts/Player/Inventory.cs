@@ -3,33 +3,36 @@ using UnityEngine;
 
 public class Inventory : MonoBehaviour
 {
-    public List<ItemSO> items = new List<ItemSO>();
-    private int selectedIndex = -1; // Индекс текущего выбранного предмета (-1 означает, что ничего не выбрано)
+    [SerializeField] private ItemSO[] items; // Массив для хранения предметов по слотам
+    [SerializeField] private Hotbar hotbar;
+
+    private void Start()
+    {
+        // Инициализируем массив items с размером, равным количеству слотов в хот-баре
+        items = new ItemSO[hotbar.GetLengthSlots()];
+    }
 
     // Добавляем предмет в инвентарь
     public void AddItem(ItemSO item)
     {
-        if (items.Count < 5)
+        int slotIndex = hotbar.GetSelectedSlot();
+
+        // Если слот пустой, добавляем предмет
+        if (items[slotIndex] == null)
         {
-            items.Add(item);
-            if (selectedIndex == -1)
-            {
-                selectedIndex = items.Count - 1;
-            }
+            items[slotIndex] = item;
+            hotbar.SetItemIcon(slotIndex, item.itemIcon);
             UpdateUI();
         }
     }
 
     // Убираем предмет из инвентаря
-    public void RemoveItem(ItemSO item)
+    public void RemoveItem(int slotIndex)
     {
-        if (items.Contains(item))
+        if (slotIndex >= 0 && slotIndex < items.Length && items[slotIndex] != null)
         {
-            items.Remove(item);
-            if (selectedIndex >= items.Count)
-            {
-                selectedIndex = items.Count - 1;
-            }
+            items[slotIndex] = null;
+            hotbar.ClearItemIcon(slotIndex);
             UpdateUI();
         }
     }
@@ -37,36 +40,27 @@ public class Inventory : MonoBehaviour
     // Возвращаем текущий выбранный предмет
     public ItemSO GetCurrentItem()
     {
-        if (selectedIndex >= 0 && selectedIndex < items.Count)
+        int slotIndex = hotbar.GetSelectedSlot();
+        if (slotIndex >= 0 && slotIndex < items.Length)
         {
-            return items[selectedIndex];
+            return items[slotIndex];
         }
         return null;
     }
 
-    // Переключаемся на следующий предмет
-    public void NextItem()
+    // Проверяем, есть ли предмет в конкретном слоте
+    public bool HasItemInSlot(int slotIndex)
     {
-        if (items.Count > 0)
+        if (slotIndex >= 0 && slotIndex < items.Length)
         {
-            selectedIndex = (selectedIndex + 1) % items.Count;
-            UpdateUI();
+            return items[slotIndex] != null;
         }
-    }
-
-    // Переключаемся на предыдущий предмет
-    public void PreviousItem()
-    {
-        if (items.Count > 0)
-        {
-            selectedIndex = (selectedIndex - 1 + items.Count) % items.Count;
-            UpdateUI();
-        }
+        return false;
     }
 
     // Обновляем интерфейс инвентаря
     private void UpdateUI()
     {
-
+        // Здесь можно добавить логику обновления UI, если нужно
     }
 }
