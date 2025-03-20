@@ -7,6 +7,8 @@ public class ItemWorld : MonoBehaviour
     private Vector3 originalScale;
     private Vector3 colliderSize;
     private Vector3 colliderCenter;
+    private HighlightableObject highlightableObject;
+    private Renderer[] originalRenderers;
 
     private void Awake()
     {
@@ -17,7 +19,6 @@ public class ItemWorld : MonoBehaviour
 
         originalScale = transform.localScale;
 
-        // ѕолучаем данные коллайдера, если он есть
         BoxCollider collider = GetComponent<BoxCollider>();
         if (collider != null)
         {
@@ -28,6 +29,22 @@ public class ItemWorld : MonoBehaviour
         {
             colliderSize = Vector3.one;
             colliderCenter = Vector3.zero;
+        }
+
+        highlightableObject = GetComponent<HighlightableObject>();
+
+        if (highlightableObject != null && highlightableObject.targetRenderers != null && highlightableObject.targetRenderers.Length > 0)
+        {
+            originalRenderers = highlightableObject.targetRenderers;
+        }
+        else
+        {
+            originalRenderers = GetComponentsInChildren<Renderer>(includeInactive: true);
+        }
+
+        if (highlightableObject != null)
+        {
+            highlightableObject.SetRenderers(originalRenderers);
         }
     }
 
@@ -49,6 +66,20 @@ public class ItemWorld : MonoBehaviour
     public Vector3 GetColliderCenter()
     {
         return colliderCenter;
+    }
+
+    public Material GetOriginalMaterial()
+    {
+        if (highlightableObject != null)
+        {
+            return highlightableObject.highlightMaterial;
+        }
+        return null;
+    }
+
+    public Renderer[] GetOriginalRenderers()
+    {
+        return originalRenderers;
     }
 
     public void SetItem(ItemSO newItem)

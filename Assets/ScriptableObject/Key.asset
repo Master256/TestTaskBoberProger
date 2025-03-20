@@ -9,10 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4d885e843498df43b8cca9e8a261923, type: 3}
+  m_Script: {fileID: 11500000, guid: 9ad51c83c41d52a43b619f36d89fe507, type: 3}
   m_Name: Key
   m_EditorClassIdentifier: 
   itemName: Key
   itemIcon: {fileID: 2119728248, guid: 78448d99417fde3419458728fa1657f6, type: 3}
-  prefab: {fileID: 919132149155446097, guid: 331c45079c35312439006c1a6d557b51, type: 3}
-  itemType: 0
+  prefab: {fileID: 3850567487226516578, guid: ccdbc7baf0022ef479de95394b666a0d, type: 3}
+  originalScale: {x: 0, y: 0, z: 0}
+  colliderSize: {x: 0, y: 0, z: 0}
+  colliderCenter: {x: 0, y: 0, z: 0}
+  highlightMaterial: {fileID: 2100000, guid: 774f59d6ae9669e44be1ca616ce4aac6, type: 2}
+  highlightScale: 1.02

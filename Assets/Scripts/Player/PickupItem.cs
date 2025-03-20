@@ -14,6 +14,8 @@ public class PickupItem : MonoBehaviour
     private Vector3[] heldItemColliderSize;
     private Vector3[] heldItemColliderCenter;
     private ItemSO[] heldItemSO;
+    private Material[] heldOriginalMaterial;
+    private Renderer[][] heldOriginalRenderers;
     private bool isHoldingItem = false;
 
     private void Awake()
@@ -21,7 +23,7 @@ public class PickupItem : MonoBehaviour
         inventory = GetComponent<Inventory>();
         if (inventory == null)
         {
-            Debug.LogError("Inventory component not found on the player!");
+            Debug.LogError("Inventory компонент не найден!");
         }
     }
 
@@ -31,6 +33,8 @@ public class PickupItem : MonoBehaviour
         heldItemColliderSize = new Vector3[hotbar.GetLengthSlots()];
         heldItemColliderCenter = new Vector3[hotbar.GetLengthSlots()];
         heldItemSO = new ItemSO[hotbar.GetLengthSlots()];
+        heldOriginalMaterial = new Material[hotbar.GetLengthSlots()];
+        heldOriginalRenderers = new Renderer[hotbar.GetLengthSlots()][];
     }
 
     private void Update()
@@ -74,6 +78,10 @@ public class PickupItem : MonoBehaviour
                     heldItemColliderSize[index] = Vector3.one;
                     heldItemColliderCenter[index] = Vector3.zero;
                 }
+
+                // Получаем материал и рендереры из HighlightableObject
+                heldOriginalMaterial[index] = itemWorld.GetOriginalMaterial();
+                heldOriginalRenderers[index] = itemWorld.GetOriginalRenderers();
 
                 inventory.AddItem(heldItemSO[index]);
                 DisplayItemInHand(heldItemSO[index], heldItemOriginalScale[index], heldItemColliderSize[index], heldItemColliderCenter[index]);
@@ -119,45 +127,29 @@ public class PickupItem : MonoBehaviour
                 Vector3 spawnPosition = handTransform.position + handTransform.forward * 2;
 
                 GameObject droppedItem = Instantiate(item.prefab, spawnPosition, Quaternion.identity);
-                if (droppedItem == null)
-                {
-                    return;
-                }
+                if (droppedItem == null) return;
 
                 int itemLayerIndex = GetFirstLayerIndex(itemLayer);
-                if (itemLayerIndex != -1)
-                {
-                    droppedItem.layer = itemLayerIndex;
-                }
+                if (itemLayerIndex != -1) droppedItem.layer = itemLayerIndex;
 
                 droppedItem.transform.localScale = heldItemOriginalScale[slotIndex];
-
                 BoxCollider boxCollider = droppedItem.GetComponent<BoxCollider>();
-                if (boxCollider == null)
-                {
-                    boxCollider = droppedItem.AddComponent<BoxCollider>();
-                }
-
+                if (boxCollider == null) boxCollider = droppedItem.AddComponent<BoxCollider>();
                 boxCollider.size = heldItemColliderSize[slotIndex];
                 boxCollider.center = heldItemColliderCenter[slotIndex];
 
                 Rigidbody rb = droppedItem.GetComponent<Rigidbody>();
-                if (rb == null)
-                {
-                    rb = droppedItem.AddComponent<Rigidbody>();
-                }
-
+                if (rb == null) rb = droppedItem.AddComponent<Rigidbody>();
                 rb.mass = 1f;
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
                 rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
-                ItemWorld itemWorld = droppedItem.GetComponent<ItemWorld>();
-                if (itemWorld == null)
-                {
-                    itemWorld = droppedItem.AddComponent<ItemWorld>();
-                }
-
+                ItemWorld itemWorld = droppedItem.GetComponent<ItemWorld>() ?? droppedItem.AddComponent<ItemWorld>();
                 itemWorld.SetItem(heldItemSO[slotIndex]);
+
+                HighlightableObject highlightableObject = droppedItem.GetComponent<HighlightableObject>() ?? droppedItem.AddComponent<HighlightableObject>();
+                highlightableObject.highlightMaterial = heldOriginalMaterial[slotIndex];
+                highlightableObject.targetRenderers = heldOriginalRenderers[slotIndex];
 
                 inventory.RemoveItem(slotIndex);
             }
@@ -209,6 +201,11 @@ public class PickupItem : MonoBehaviour
                 currentHeldItem.transform.localPosition = Vector3.zero;
                 currentHeldItem.transform.localRotation = Quaternion.identity;
                 currentHeldItem.transform.localScale = heldItemOriginalScale[currentSlotIndex];
+
+                BoxCollider boxCollider = currentHeldItem.GetComponent<BoxCollider>();
+                if (boxCollider == null) boxCollider = currentHeldItem.AddComponent<BoxCollider>();
+                boxCollider.size = heldItemColliderSize[currentSlotIndex];
+                boxCollider.center = heldItemColliderCenter[currentSlotIndex];
 
                 isHoldingItem = true;
             }
